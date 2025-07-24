@@ -34,11 +34,37 @@ class ReplicateService:
         Returns:
             List of generated media URLs
         """
-        # Use mock in development if no API token
-        if self.settings.is_development and not self.api_token:
-            logger.warning("Using mock Replicate service in development")
+        # Decision logic for API vs Mock
+        if self.api_token:
+            # Use real API if token is provided (regardless of environment)
+            logger.info(
+                "Using real Replicate API",
+                has_token=True,
+                is_development=self.settings.is_development,
+                model=self.model
+            )
+            return await self._use_real_api(prompt, parameters)
+        elif self.settings.is_development:
+            # Use mock in development when no API token
+            logger.warning(
+                "Using mock Replicate service in development (no API token provided)",
+                has_token=False,
+                is_development=True
+            )
             return await self._mock_generate_media(prompt, parameters)
-        
+        else:
+            # Production without token is an error
+            raise ValueError(
+                "REPLICATE_API_TOKEN is required in production environment. "
+                "Please set the REPLICATE_API_TOKEN environment variable."
+            )
+    
+    async def _use_real_api(
+        self,
+        prompt: str,
+        parameters: Optional[Dict[str, Any]] = None
+    ) -> List[str]:
+        """Use the real Replicate API for media generation."""
         # Prepare input
         input_data = {
             "prompt": prompt,
