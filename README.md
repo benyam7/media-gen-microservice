@@ -14,6 +14,8 @@ A production-grade asynchronous microservice for AI-powered media generation usi
 - **Database Migrations**: Version-controlled database schema with Alembic
 - **Structured Logging**: JSON-formatted logs with request tracking
 - **Monitoring**: Prometheus metrics and Celery Flower dashboard
+- **Comprehensive Test Suite**: 146+ tests with 78%+ code coverage, including unit, integration, and API tests
+- **Developer Documentation**: Detailed API examples and testing guides
 
 ## 📋 Table of Contents
 
@@ -22,6 +24,7 @@ A production-grade asynchronous microservice for AI-powered media generation usi
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [API Reference](#api-reference)
+- [Documentation](#documentation)
 - [Development](#development)
 - [Testing](#testing)
 - [Deployment](#deployment)
@@ -296,20 +299,146 @@ GET /api/v1/media/{media_id}
 GET /api/v1/health
 ```
 
-## 🧪 Testing
+## 📚 Documentation
 
-Run the test suite:
+### Available Documentation
+
+- **[API Examples](docs/API_EXAMPLES.md)**: Comprehensive API usage examples with curl, Python, and JavaScript
+- **[Testing Guide](docs/TESTING.md)**: Detailed testing documentation, fixtures, and best practices
+- **[OpenAPI/Swagger](http://localhost:8000/docs)**: Interactive API documentation (when running locally)
+- **[ReDoc](http://localhost:8000/redoc)**: Alternative API documentation interface
+
+### Quick Links
+
+- **API Examples**: Full request/response examples for all endpoints
+- **Webhook Integration**: Examples for implementing webhook handlers
+- **Error Handling**: Common error scenarios and handling strategies
+- **Rate Limiting**: Guidelines for API usage limits
+- **Best Practices**: Recommended patterns for production use
+
+## 🔧 Development
+
+### Development Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/media-gen-microservice.git
+   cd media-gen-microservice
+   ```
+
+2. **Set up Python environment**
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp env.example .env
+   # Edit .env with your configuration
+   ```
+
+4. **Run database migrations**
+   ```bash
+   alembic upgrade head
+   ```
+
+5. **Start development servers**
+   ```bash
+   # Terminal 1: Start API server
+   make run
+
+   # Terminal 2: Start Celery worker
+   make worker
+
+   # Terminal 3: Start Celery Flower (optional)
+   make flower
+   ```
+
+### Useful Make Commands
 
 ```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=app --cov-report=html
-
-# Run specific test file
-pytest tests/test_api.py
+make help          # Show all available commands
+make install       # Install dependencies
+make run           # Run API server
+make worker        # Run Celery worker
+make flower        # Run Celery Flower dashboard
+make migrate       # Run database migrations
+make migration     # Create new migration
+make shell         # Open Python shell with app context
+make clean         # Clean up cache files
+make format        # Format code with Black
+make lint          # Run linting checks
+make type-check    # Run type checking
+make test          # Run all tests
+make test-fast     # Run tests without slow tests
 ```
+
+## 🧪 Testing
+
+The project includes a comprehensive test suite with 146+ tests covering all major components.
+
+### Test Coverage
+
+- **Current Coverage**: 78.9%
+- **Test Categories**: Unit tests, Integration tests, API tests, Service tests, Worker tests
+
+### Running Tests
+
+```bash
+# Run all tests with coverage
+make test
+
+# Run tests without slow tests (faster feedback)
+make test-fast
+
+# Run tests in parallel
+make test-parallel
+
+# Run specific test categories
+make test-unit        # Unit tests only
+make test-integration # Integration tests only
+make test-api        # API endpoint tests only
+make test-service    # Service layer tests only
+make test-worker     # Worker/task tests only
+
+# Generate coverage report
+make test-cov
+
+# Run tests with coverage threshold check
+make test-cov-fail
+```
+
+### Test Structure
+
+```
+tests/
+├── conftest.py          # Shared fixtures and configuration
+├── utils.py             # Test utilities and helpers
+├── test_*.py           # Root level tests
+├── api/                # API endpoint tests
+│   ├── test_jobs.py
+│   ├── test_media.py
+│   └── test_health.py
+├── services/           # Service layer tests
+│   ├── test_job_service.py
+│   ├── test_storage_service.py
+│   └── test_replicate_service.py
+└── workers/            # Celery worker tests
+    └── test_tasks.py
+```
+
+### Test Features
+
+- **Async Support**: Full async/await test support with pytest-asyncio
+- **Fixtures**: Comprehensive fixtures for database, storage, and service mocking
+- **In-Memory Database**: SQLite for fast test execution
+- **Mock Services**: Mock Replicate API for testing without API calls
+- **Test Markers**: Organize tests with markers (slow, unit, integration, etc.)
+- **Parallel Execution**: Run tests in parallel with pytest-xdist
+
+For detailed testing documentation, see [docs/TESTING.md](docs/TESTING.md).
 
 ## 🚢 Deployment
 
@@ -393,15 +522,28 @@ docker compose exec -T postgres psql -U postgres media_gen_db < backup.sql
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Write tests for your changes
+4. Ensure all tests pass (`make test`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
-### Code Style
+### Development Guidelines
 
-- Use Black for formatting: `black app/`
-- Use flake8 for linting: `flake8 app/`
-- Use mypy for type checking: `mypy app/`
+- **Code Style**: Use Black for formatting (`black app/`)
+- **Linting**: Use flake8 for linting (`flake8 app/`)
+- **Type Checking**: Use mypy for type checking (`mypy app/`)
+- **Testing**: Write tests for new features and ensure 78%+ coverage
+- **Documentation**: Update documentation for API changes
+
+### Pre-commit Checklist
+
+- [ ] All tests pass (`make test`)
+- [ ] Code is formatted (`black app/`)
+- [ ] No linting errors (`flake8 app/`)
+- [ ] Type hints are correct (`mypy app/`)
+- [ ] Documentation is updated
+- [ ] Commit messages are descriptive
 
 ## 📄 License
 
