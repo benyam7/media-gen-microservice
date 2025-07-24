@@ -1,15 +1,19 @@
-from typing import Union
+"""Entry point for running the application directly."""
 
-from fastapi import FastAPI
+import uvicorn
+from app.main import app
+from app.core.config import get_settings
 
-app = FastAPI()
-
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+if __name__ == "__main__":
+    settings = get_settings()
+    
+    uvicorn.run(
+        "app.main:app",
+        host=settings.api_host,
+        port=settings.api_port,
+        reload=settings.is_development,
+        workers=1 if settings.is_development else settings.api_workers,
+        log_level=settings.log_level.lower(),
+        access_log=True,
+        use_colors=settings.is_development
+    )

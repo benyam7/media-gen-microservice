@@ -1,2 +1,38 @@
+# Core Framework
 fastapi[standard]==0.113.0
 pydantic==2.8.0
+pydantic-settings==2.0.3
+uvicorn[standard]==0.24.0
+
+# Database
+sqlmodel==0.0.14
+alembic==1.12.1
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+
+# Async Libraries
+aiofiles==23.2.1
+aioboto3==12.3.0
+httpx==0.25.2
+
+# Celery & Redis
+celery==5.3.4
+redis==5.0.1
+flower==2.0.1
+
+# Storage
+Pillow==10.1.0
+
+# Logging & Monitoring
+structlog==23.2.0
+sentry-sdk==1.38.0
+prometheus-client==0.19.0
+
+# Development & Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+pre-commit==3.5.0
