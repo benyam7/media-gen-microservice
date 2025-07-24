@@ -12,7 +12,7 @@ class MediaResponse(BaseModel):
     
     id: UUID = Field(..., description="Media identifier")
     type: MediaType = Field(..., description="Media type")
-    storage_url: str = Field(..., description="Public URL for accessing the media")
+    storage_url: Optional[str] = Field(None, description="Public URL for accessing the media")
     storage_path: str = Field(..., description="Storage path or S3 key")
     
     # File information

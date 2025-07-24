@@ -39,9 +39,8 @@ async def get_media_file(
     db: AsyncSession = Depends(get_session),
     settings: Settings = Depends(get_settings)
 ):
-    """Get the actual media file.
+    """Retrieve the actual media file.
     
-    For S3 storage with public URLs, this redirects to the S3 URL.
     For local storage or private S3, this streams the file content.
     """
     # Query media
@@ -63,6 +62,15 @@ async def get_media_file(
     # Otherwise, stream the file from storage
     try:
         storage_service = StorageService(settings)
+        
+        # Debug logging
+        logger.info(
+            "Storage configuration",
+            storage_type=settings.storage_type,
+            storage_local_path=settings.storage_local_path,
+            media_path=media.storage_path,
+            media_provider=media.storage_provider
+        )
         
         # Get file stream
         file_stream, content_length = await storage_service.download_file(
