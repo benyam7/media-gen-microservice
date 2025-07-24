@@ -12,35 +12,35 @@ class GenerationParameters(BaseModel):
     
     model_config = ConfigDict(extra="allow")
     
-    # Common parameters
+    # Common parameters (Note: actual compatibility depends on the model)
     width: Optional[int] = Field(
-        default=1024,
+        default=None,
         ge=128,
         le=2048,
-        description="Image width in pixels"
+        description="Image width in pixels (not supported by all models)"
     )
     height: Optional[int] = Field(
-        default=1024,
+        default=None,
         ge=128,
         le=2048,
-        description="Image height in pixels"
+        description="Image height in pixels (not supported by all models)"
     )
     num_inference_steps: Optional[int] = Field(
-        default=50,
+        default=None,
         ge=1,
         le=500,
-        description="Number of denoising steps"
+        description="Number of denoising steps (Flux models: max 4, SDXL: up to 500)"
     )
     guidance_scale: Optional[float] = Field(
-        default=7.5,
+        default=None,
         ge=1.0,
         le=20.0,
-        description="Guidance scale for generation"
+        description="Guidance scale for generation (not supported by all models)"
     )
     negative_prompt: Optional[str] = Field(
         default=None,
         max_length=1000,
-        description="Negative prompt to avoid certain features"
+        description="Negative prompt to avoid certain features (not supported by all models)"
     )
     seed: Optional[int] = Field(
         default=None,
@@ -49,14 +49,26 @@ class GenerationParameters(BaseModel):
         description="Random seed for reproducibility"
     )
     scheduler: Optional[str] = Field(
-        default="DPMSolverMultistep",
-        description="Scheduler algorithm"
+        default=None,
+        description="Scheduler algorithm (not supported by all models)"
     )
     num_outputs: Optional[int] = Field(
-        default=1,
+        default=None,
         ge=1,
         le=4,
-        description="Number of images to generate"
+        description="Number of images to generate (not supported by all models)"
+    )
+    
+    # Flux-specific parameters
+    aspect_ratio: Optional[str] = Field(
+        default=None,
+        description="Aspect ratio for Flux models (e.g., '1:1', '16:9', '9:16')"
+    )
+    output_quality: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=100,
+        description="Output quality for Flux models (1-100)"
     )
     
     @validator("scheduler")

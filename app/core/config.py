@@ -1,7 +1,7 @@
 """Application configuration module using Pydantic settings."""
 
 from functools import lru_cache
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Union
 from pydantic import Field, validator, AnyHttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
         description="Replicate API token"
     )
     replicate_model: str = Field(
-        default="stability-ai/sdxl:8c9b1b7b3b4b5e6f7d8a9c0e1f2g3h4i5j6k7l8m9n0o1p",
+        default="black-forest-labs/flux-schnell",
         description="Replicate model ID"
     )
     replicate_timeout: int = Field(default=300, description="Replicate API timeout")
@@ -97,9 +97,9 @@ class Settings(BaseSettings):
         default="",
         description="Application secret key"
     )
-    allowed_origins: List[str] = Field(
-        default=["http://localhost:3000", "http://localhost:8000"],
-        description="Allowed CORS origins"
+    allowed_origins: Union[str, List[str]] = Field(
+        default="http://localhost:3000,http://localhost:8000",
+        description="Allowed CORS origins (comma-separated)"
     )
     
     # Monitoring Configuration
@@ -122,11 +122,20 @@ class Settings(BaseSettings):
         return v
     
     @validator("allowed_origins", pre=True)
-    def parse_allowed_origins(cls, v):
+    def parse_allowed_origins(cls, v) -> List[str]:
         """Parse comma-separated allowed origins."""
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
+            # Handle empty string
+            if not v.strip():
+                return ["http://localhost:3000", "http://localhost:8000"]
+            # Parse comma-separated values
+            origins = [origin.strip() for origin in v.split(",") if origin.strip()]
+            return origins if origins else ["http://localhost:3000", "http://localhost:8000"]
+        elif isinstance(v, list):
+            return v
+        else:
+            # Fallback to default
+            return ["http://localhost:3000", "http://localhost:8000"]
     
     @property
     def database_url_sync(self) -> str:

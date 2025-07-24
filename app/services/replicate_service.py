@@ -1,8 +1,9 @@
 """Replicate API integration service."""
 
 import asyncio
+import os
 from typing import List, Dict, Any, Optional
-import httpx
+import replicate
 from app.core.config import Settings
 from app.core.logging import get_logger
 
@@ -18,7 +19,21 @@ class ReplicateService:
         self.api_token = settings.replicate_api_token
         self.model = settings.replicate_model
         self.timeout = settings.replicate_timeout
-        self.base_url = "https://api.replicate.com/v1"
+        
+        # Set up Replicate client
+        if self.api_token:
+            os.environ["REPLICATE_API_TOKEN"] = self.api_token
+        
+        # Debug logging to see what we actually got
+        logger.info(
+            "ReplicateService initialized",
+            has_token=bool(self.api_token),
+            token_length=len(self.api_token) if self.api_token else 0,
+            token_preview=self.api_token[:8] + "..." if len(self.api_token) > 8 else self.api_token,
+            model=self.model,
+            is_development=settings.is_development,
+            app_env=settings.app_env
+        )
     
     async def generate_media(
         self,
@@ -35,6 +50,14 @@ class ReplicateService:
             List of generated media URLs
         """
         # Decision logic for API vs Mock
+        logger.debug(
+            "Making API vs Mock decision",
+            api_token_provided=bool(self.api_token),
+            api_token_length=len(self.api_token) if self.api_token else 0,
+            is_development=self.settings.is_development,
+            app_env=self.settings.app_env
+        )
+        
         if self.api_token:
             # Use real API if token is provided (regardless of environment)
             logger.info(
@@ -65,17 +88,30 @@ class ReplicateService:
         parameters: Optional[Dict[str, Any]] = None
     ) -> List[str]:
         """Use the real Replicate API for media generation."""
+        # Clean and validate parameters based on the model
+        cleaned_parameters = self._clean_parameters_for_model(parameters or {})
+        
         # Prepare input
         input_data = {
             "prompt": prompt,
-            **(parameters or {})
+            **cleaned_parameters
         }
         
-        # Create prediction
-        prediction_id = await self._create_prediction(input_data)
+        logger.info(
+            "Generating media with Replicate API",
+            model=self.model,
+            prompt_preview=prompt[:50] + "..." if len(prompt) > 50 else prompt,
+            original_parameters=parameters,
+            cleaned_parameters=cleaned_parameters
+        )
         
-        # Wait for completion
-        output = await self._wait_for_prediction(prediction_id)
+        # Run in executor since replicate.run is synchronous
+        loop = asyncio.get_event_loop()
+        output = await loop.run_in_executor(
+            None,
+            self._run_replicate_sync,
+            input_data
+        )
         
         # Extract URLs from output
         if isinstance(output, list):
@@ -85,86 +121,77 @@ class ReplicateService:
         else:
             raise ValueError(f"Unexpected output format: {type(output)}")
     
-    async def _create_prediction(self, input_data: Dict[str, Any]) -> str:
-        """Create a new prediction."""
-        headers = {
-            "Authorization": f"Token {self.api_token}",
-            "Content-Type": "application/json"
-        }
+    def _clean_parameters_for_model(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Clean and validate parameters based on the specific model being used."""
+        cleaned = {}
         
-        payload = {
-            "version": self.model.split(":")[-1] if ":" in self.model else self.model,
-            "input": input_data
-        }
-        
-        # If model contains owner/name:version format
-        if "/" in self.model and ":" in self.model:
-            model_parts = self.model.split(":")
-            model_name = model_parts[0]
-            version = model_parts[1]
+        # Handle different models
+        if "flux-schnell" in self.model.lower():
+            # Flux Schnell specific parameters
             
-            # Use the models endpoint
-            url = f"{self.base_url}/models/{model_name}/predictions"
-            payload = {"version": version, "input": input_data}
+            # For Flux, only include specific supported parameters
+            # Based on Replicate docs: https://replicate.com/black-forest-labs/flux-schnell
+            
+            # num_inference_steps: must be <= 4 for Flux Schnell
+            if "num_inference_steps" in parameters:
+                num_steps = parameters["num_inference_steps"]
+                if num_steps and num_steps > 4:
+                    logger.warning(f"Flux model requires num_inference_steps <= 4, got {num_steps}, setting to 4")
+                    cleaned["num_inference_steps"] = 4
+                elif num_steps and num_steps >= 1:
+                    cleaned["num_inference_steps"] = num_steps
+                # Don't include if None or invalid
+            
+            # seed: must be integer for Flux
+            if "seed" in parameters and parameters["seed"] is not None:
+                try:
+                    cleaned["seed"] = int(parameters["seed"])
+                except (ValueError, TypeError):
+                    logger.warning(f"Invalid seed value: {parameters['seed']}, skipping")
+            
+            # aspect_ratio: Flux supports this
+            if "aspect_ratio" in parameters and parameters["aspect_ratio"]:
+                cleaned["aspect_ratio"] = str(parameters["aspect_ratio"])
+            
+            # output_quality: Flux supports this
+            if "output_quality" in parameters and parameters["output_quality"]:
+                cleaned["output_quality"] = int(parameters["output_quality"])
+                
+            # Skip parameters that Flux doesn't support
+            unsupported_for_flux = [
+                "width", "height", "guidance_scale", "negative_prompt", 
+                "scheduler", "num_outputs"
+            ]
+            for param in unsupported_for_flux:
+                if param in parameters:
+                    logger.debug(f"Skipping unsupported parameter for Flux: {param}")
+                    
+        elif "sdxl" in self.model.lower():
+            # SDXL model parameters
+            for key, value in parameters.items():
+                if value is not None:
+                    cleaned[key] = value
+                    
         else:
-            # Use the predictions endpoint
-            url = f"{self.base_url}/predictions"
+            # Default: include all non-None parameters
+            for key, value in parameters.items():
+                if value is not None:
+                    cleaned[key] = value
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(url, json=payload, headers=headers)
-            response.raise_for_status()
-            
-            data = response.json()
-            prediction_id = data["id"]
-            
-            logger.info(
-                "Created Replicate prediction",
-                prediction_id=prediction_id,
-                model=self.model
-            )
-            
-            return prediction_id
+        logger.debug(f"Cleaned parameters for model {self.model}: {cleaned}")
+        return cleaned
     
-    async def _wait_for_prediction(self, prediction_id: str) -> Any:
-        """Wait for prediction to complete."""
-        headers = {
-            "Authorization": f"Token {self.api_token}"
-        }
-        
-        url = f"{self.base_url}/predictions/{prediction_id}"
-        start_time = asyncio.get_event_loop().time()
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            while True:
-                # Check timeout
-                elapsed = asyncio.get_event_loop().time() - start_time
-                if elapsed > self.timeout:
-                    raise TimeoutError(f"Prediction timeout after {elapsed:.1f}s")
-                
-                # Get prediction status
-                response = await client.get(url, headers=headers)
-                response.raise_for_status()
-                
-                data = response.json()
-                status = data["status"]
-                
-                logger.debug(
-                    "Prediction status",
-                    prediction_id=prediction_id,
-                    status=status,
-                    elapsed=f"{elapsed:.1f}s"
-                )
-                
-                if status == "succeeded":
-                    return data["output"]
-                elif status == "failed":
-                    error = data.get("error", "Unknown error")
-                    raise RuntimeError(f"Prediction failed: {error}")
-                elif status == "canceled":
-                    raise RuntimeError("Prediction was canceled")
-                
-                # Wait before next check
-                await asyncio.sleep(2.0)
+    def _run_replicate_sync(self, input_data: Dict[str, Any]) -> Any:
+        """Run replicate synchronously."""
+        try:
+            output = replicate.run(self.model, input=input_data)
+            logger.info("Replicate generation completed successfully")
+            return output
+        except Exception as e:
+            logger.error(f"Replicate API error: {str(e)}")
+            raise
+    
+
     
     async def _mock_generate_media(
         self,
@@ -255,24 +282,27 @@ class ReplicateService:
         if self.settings.is_development and not self.api_token:
             return True
         
-        headers = {
-            "Authorization": f"Token {self.api_token}"
-        }
-        
-        url = f"{self.base_url}/predictions/{prediction_id}/cancel"
-        
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(url, headers=headers)
-                response.raise_for_status()
-                
-                logger.info("Cancelled prediction", prediction_id=prediction_id)
-                return True
-                
+            # Run in executor since replicate operations are synchronous
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                self._cancel_prediction_sync,
+                prediction_id
+            )
+            
+            logger.info("Cancelled prediction", prediction_id=prediction_id)
+            return True
+            
         except Exception as e:
             logger.error(
                 "Failed to cancel prediction",
                 prediction_id=prediction_id,
                 error=str(e)
             )
-            return False 
+            return False
+    
+    def _cancel_prediction_sync(self, prediction_id: str) -> None:
+        """Cancel prediction synchronously."""
+        prediction = replicate.predictions.get(prediction_id)
+        prediction.cancel() 

@@ -15,6 +15,9 @@ aiofiles==23.2.1
 aioboto3==12.3.0
 httpx==0.25.2
 
+# AI/ML APIs
+replicate==0.25.1
+
 # Celery & Redis
 celery==5.3.4
 redis==5.0.1
