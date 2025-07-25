@@ -2,7 +2,7 @@
 
 A production-grade asynchronous microservice for AI-powered media generation using the Replicate API. Built with FastAPI, Celery, and modern Python best practices.
 
-## 🚀 Features
+## Features
 
 - **Asynchronous Processing**: Non-blocking API with background job processing using Celery
 - **Scalable Architecture**: Horizontally scalable workers and API instances
@@ -17,7 +17,7 @@ A production-grade asynchronous microservice for AI-powered media generation usi
 - **Comprehensive Test Suite**: 146+ tests with 78%+ code coverage, including unit, integration, and API tests
 - **Developer Documentation**: Detailed API examples and testing guides
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
@@ -31,7 +31,7 @@ A production-grade asynchronous microservice for AI-powered media generation usi
 - [Monitoring](#monitoring)
 - [Contributing](#contributing)
 
-## 🏗️ Architecture
+## Architecture
 
 ### System Overview
 
@@ -109,7 +109,7 @@ media-gen-microservice/
 └── requirements.txt       # Python dependencies
 ```
 
-## 🔧 Prerequisites
+## Prerequisites
 
 - Python 3.11+
 - Docker and Docker Compose
@@ -117,7 +117,7 @@ media-gen-microservice/
 - Redis (or use Docker)
 - S3-compatible storage (or use MinIO in Docker)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Using Docker Compose (Recommended)
 
@@ -193,7 +193,7 @@ media-gen-microservice/
    celery -A app.workers.celery_app beat --loglevel=info
    ```
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -225,7 +225,7 @@ S3_SECRET_ACCESS_KEY=minioadmin
 S3_BUCKET_NAME=media-generation
 ```
 
-## 📡 API Reference
+## API Reference
 
 ### Create Media Generation Job
 
@@ -299,7 +299,7 @@ GET /api/v1/media/{media_id}
 GET /api/v1/health
 ```
 
-## 📚 Documentation
+## Documentation
 
 ### Available Documentation
 
@@ -316,7 +316,7 @@ GET /api/v1/health
 - **Rate Limiting**: Guidelines for API usage limits
 - **Best Practices**: Recommended patterns for production use
 
-## 🔧 Development
+## Development
 
 ### Development Setup
 
@@ -375,7 +375,7 @@ make test          # Run all tests
 make test-fast     # Run tests without slow tests
 ```
 
-## 🧪 Testing
+## Testing
 
 The project includes a comprehensive test suite with 146+ tests covering all major components.
 
@@ -440,7 +440,7 @@ tests/
 
 For detailed testing documentation, see [docs/TESTING.md](docs/TESTING.md).
 
-## 🚢 Deployment
+## Deployment
 
 ### Production Deployment with Docker
 
@@ -469,7 +469,7 @@ kubectl apply -f infrastructure/k8s/
 - **Staging**: Full functionality with test API tokens
 - **Production**: Full functionality with production tokens and external services
 
-## 📊 Monitoring
+## Monitoring
 
 ### Metrics
 
@@ -493,7 +493,7 @@ Access Flower dashboard at http://localhost:5555 for:
 - Queue monitoring
 - Real-time statistics
 
-## 🛠️ Maintenance
+## Maintenance
 
 ### Database Migrations
 
@@ -518,7 +518,7 @@ docker compose exec postgres pg_dump -U postgres media_gen_db > backup.sql
 docker compose exec -T postgres psql -U postgres media_gen_db < backup.sql
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -545,13 +545,6 @@ docker compose exec -T postgres psql -U postgres media_gen_db < backup.sql
 - [ ] Documentation is updated
 - [ ] Commit messages are descriptive
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- FastAPI for the amazing web framework
-- Celery for robust task processing
-- Replicate for AI model hosting
-- All contributors and maintainers 
